@@ -3,10 +3,8 @@ import { cn, formatPercentage } from "@/lib/utils";
 import { TrendingDown, TrendingUp } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import React from "react";
 import DataTable from "../DataTable";
 import { TrendingCoinsFallback } from "@/components/home/fallback";
-import { format } from "path";
 
 const TrendingCoins = async () => {
   let trendingCoins;

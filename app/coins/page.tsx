@@ -8,8 +8,12 @@ import CoinsPagination from "@/components/CoinsPagination";
 
 const Coins = async ({ searchParams }: NextPageProps) => {
   const { page } = await searchParams;
+  const rawPage = Array.isArray(page) ? page[0] : page;
+  const parsedPage = Number.parseInt(rawPage ?? "1", 10);
+  const currentPage =
+    Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
   console.log("Current page:", page);
-  const currentPage = Number(page) || 1;
+  // const currentPage = Number(page) || 1;
   const perPage = 10;
   let coinsData: CoinMarketData[];
 
