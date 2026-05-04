@@ -1,5 +1,16 @@
 type OHLCData = [number, number, number, number, number];
 
+type OHLCVCandle = [
+  number, // timestamp
+  number, // open
+  number, // high
+  number, // low
+  number, // close
+  number, // volume
+];
+
+type Timeframe = "minute" | "hour" | "day";
+
 interface NextPageProps {
   params: Promise<{ [key: string]: string }>;
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -7,14 +18,14 @@ interface NextPageProps {
 
 interface CandlestickChartProps {
   data?: OHLCData[];
-  liveOhlcv?: OHLCData | null;
+  liveOhlcv?: OHLCVCandle[] | null;
   coinId: string;
   height?: number;
   children?: React.ReactNode;
   mode?: "historical" | "live";
   initialPeriod?: Period;
-  liveInterval: "1s" | "1m";
-  setLiveInterval: (interval: "1s" | "1m") => void;
+  liveInterval: "1m" | "1H" | "1D";
+  setLiveInterval: (interval: "1m" | "1H" | "1D") => void;
 }
 
 interface ConverterProps {
@@ -231,7 +242,8 @@ interface CoinDetailsData {
 
 interface LiveDataProps {
   coinId: string;
-  poolId: string;
+  poolAddress: string;
+  network: string;
   coin: CoinDetailsData;
   coinOHLCData?: OHLCData[];
   children?: React.ReactNode;
@@ -322,4 +334,47 @@ interface PoolData {
   address: string;
   name: string;
   network: string;
+}
+
+interface TradeData {
+  network: string;
+  poolAddress: string;
+  price?: number;
+  amount?: number;
+  value?: number;
+  timestamp?: number;
+  type?: string;
+}
+
+interface OHLCVResponse {
+  data: {
+    id: string;
+    type: string;
+    attributes: {
+      ohlcv_list: OHLCVItem[];
+    };
+  };
+  meta: {
+    base: {
+      address: string;
+      name: string;
+      symbol: string;
+      coingecko_coin_id: string;
+    };
+    quote: {
+      address: string;
+      name: string;
+      symbol: string;
+      coingecko_coin_id: string;
+    };
+  };
+}
+
+interface OHLCVParams {
+  network: string;
+  poolAddress: string;
+  timeframe: Timeframe;
+  aggregate?: "1" | "5" | "15" | "4" | "12";
+  limit?: number;
+  beforeTimestamp?: number;
 }
