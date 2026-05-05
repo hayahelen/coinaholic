@@ -21,6 +21,13 @@ export async function fetcher<T>(
     { skipEmptyString: true, skipNull: true },
   );
 
+  const controller = new AbortController();
+
+  const timeout = setTimeout(() => {
+    controller.abort();
+  }, 10_000);
+
+  try {
   const response = await fetch(url, {
     method: "GET",
     headers: {
@@ -28,7 +35,10 @@ export async function fetcher<T>(
     } as Record<string, string>,
     next: { revalidate },
     cache: revalidate === 0 ? "no-store" : "force-cache",
+    signal: controller.signal,
   });
+
+  clearTimeout(timeout);
 
   console.log("Fetching URL:", url);
 
@@ -42,6 +52,29 @@ export async function fetcher<T>(
   }
 
   return response.json();
+  
+  } catch (error: any) {
+    clearTimeout(timeout);
+
+    if (error?.name === "AbortError") {
+      throw new Error("CoinGecko request timed out (aborted after 10s)");
+    }
+
+    throw error;
+  }
+}
+
+  
+
+function normalizePool(pool: any): PoolData {
+  return {
+    id: pool?.id ?? "",
+    attributes: {
+      address: pool?.attributes?.address ?? "",
+      name: pool?.attributes?.name ?? "",
+      network: pool?.attributes?.network ?? "",
+    },
+  };
 }
 
 export async function getPools(
@@ -51,32 +84,35 @@ export async function getPools(
 ): Promise<PoolData> {
   const fallback: PoolData = {
     id: "",
-    address: "",
-    name: "",
-    network: "",
+    attributes: {
+      address: "",
+      name: "",
+      network: "",
+    },
   };
 
-  if (network && contractAddress) {
-    try {
-      const poolData = await fetcher<{ data: PoolData[] }>(
-        `/onchain/networks/${network}/tokens/${contractAddress}/pools`,
-      );
-
-      return poolData.data?.[0] ?? fallback;
-    } catch (error) {
-      console.log(error);
-      return fallback;
-    }
-  }
-
   try {
-    const poolData = await fetcher<{ data: PoolData[] }>(
+    const poolData = await fetcher<{ data: any[] }>(
       "/onchain/search/pools",
       { query: id },
+      60,
     );
 
-    return poolData.data?.[0] ?? fallback;
-  } catch {
+    if (!poolData.data?.length) return fallback;
+
+    // Prefer pools whose name starts with the actual coin
+    const bestPool =
+      poolData.data.find((pool) =>
+        pool.attributes?.name?.toLowerCase().startsWith(id.toLowerCase()),
+      ) ||
+      poolData.data.find((pool) =>
+        pool.attributes?.name?.toLowerCase().includes("/usd"),
+      ) ||
+      poolData.data[0];
+
+    return normalizePool(bestPool);
+  } catch (error) {
+    console.error(error);
     return fallback;
   }
 }
@@ -86,10 +122,7 @@ export async function getTrades(
   network?: string | null,
   poolAddress?: string | null,
 ): Promise<TradeData[]> {
-  const fallback: TradeData = {
-    network: "",
-    poolAddress: "",
-  };
+  const fallback: TradeData[] = [];
 
   console.log(
     "Getting trades with network:",

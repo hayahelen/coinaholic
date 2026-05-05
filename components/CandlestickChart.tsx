@@ -35,8 +35,17 @@ const mergeCandles = (
     map.set(candle[0], candle);
   }
 
+  const historicalLast =
+    historical.length > 0 ? historical[historical.length - 1][4] : null;
+
   for (const candle of normalizeLive(live)) {
-    map.set(candle[0], candle);
+    if (
+      historicalLast &&
+      candle[4] > historicalLast * 0.5 &&
+      candle[4] < historicalLast * 1.5
+    ) {
+      map.set(candle[0], candle);
+    }
   }
 
   return [...map.values()].sort((a, b) => a[0] - b[0]);

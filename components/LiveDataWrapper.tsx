@@ -48,7 +48,6 @@ const LiveDataWrapper = ({
         setTrades((prev) => {
           const merged = append ? [...prev, ...normalized] : normalized;
 
-        
           const unique = Array.from(
             new Map(
               merged.map((t) => [`${t.timestamp}-${t.price}`, t]),
@@ -143,16 +142,23 @@ const LiveDataWrapper = ({
     return () => clearInterval(interval);
   }, [fetchTrades, fetchOHLCV]);
 
-  const livePrice = liveOhlcv?.length
+  const rawLivePrice = liveOhlcv?.length
     ? liveOhlcv[liveOhlcv.length - 1][4]
-    : coin.market_data.current_price.usd;
+    : null;
+
+  const livePrice =
+    rawLivePrice &&
+    rawLivePrice > coin.market_data.current_price.usd * 0.5 &&
+    rawLivePrice < coin.market_data.current_price.usd * 1.5
+      ? rawLivePrice
+      : coin.market_data.current_price.usd;
 
   return (
     <section id="live-data-wrapper">
       <CoinHeader
         name={coin.name}
         image={coin.image.large}
-        livePrice={price?.usd ?? coin.market_data.current_price.usd}
+        livePrice={livePrice}
         livePriceChangePercentage24h={
           price?.change24h ?? coin.market_data.price_change_24h_in_currency.usd
         }

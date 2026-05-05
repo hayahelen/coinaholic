@@ -8,7 +8,7 @@ type OHLCVCandle = [
   number, // close
   number, // volume
 ];
-
+type OHLCVItem = OHLCVCandle;
 type Timeframe = "minute" | "hour" | "day";
 
 interface NextPageProps {
@@ -331,9 +331,11 @@ type QueryParams = Record<string, string | number | boolean | undefined>;
 
 interface PoolData {
   id: string;
-  address: string;
-  name: string;
-  network: string;
+  attributes: {
+    address: string;
+    name: string;
+    network: string;
+  };
 }
 
 interface TradeData {
