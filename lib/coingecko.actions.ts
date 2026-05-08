@@ -28,31 +28,30 @@ export async function fetcher<T>(
   }, 10_000);
 
   try {
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      "x-cg-demo-api-key": API_KEY,
-    } as Record<string, string>,
-    next: { revalidate },
-    cache: revalidate === 0 ? "no-store" : "force-cache",
-    signal: controller.signal,
-  });
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "x-cg-demo-api-key": API_KEY,
+      } as Record<string, string>,
+      next: { revalidate },
+      cache: revalidate === 0 ? "no-store" : "force-cache",
+      signal: controller.signal,
+    });
 
-  clearTimeout(timeout);
+    clearTimeout(timeout);
 
-  console.log("Fetching URL:", url);
+    console.log("Fetching URL:", url);
 
-  if (!response.ok) {
-    const errorBody: CoinGeckoErrorBody = await response
-      .json()
-      .catch(() => ({}));
-    throw new Error(
-      `API Error: ${response.status}: ${errorBody.error || response.statusText}`,
-    );
-  }
+    if (!response.ok) {
+      const errorBody: CoinGeckoErrorBody = await response
+        .json()
+        .catch(() => ({}));
+      throw new Error(
+        `API Error: ${response.status}: ${errorBody.error || response.statusText}`,
+      );
+    }
 
-  return response.json();
-  
+    return response.json();
   } catch (error: any) {
     clearTimeout(timeout);
 
@@ -63,8 +62,6 @@ export async function fetcher<T>(
     throw error;
   }
 }
-
-  
 
 function normalizePool(pool: any): PoolData {
   return {
@@ -166,8 +163,8 @@ export async function getOHLCVData(
   poolAddress?: string | null,
   timeframe: "1m" | "1H" | "1D" = "1m",
   revalidate = 60,
-): Promise<OHLCVCandle[]> {
-  if (!network || !poolAddress) return [];
+): Promise<OHLCVResponse | null> {
+  if (!network || !poolAddress) return null;
 
   const timeframeMap: Record<typeof timeframe, string> = {
     "1m": "minute",
@@ -179,17 +176,24 @@ export async function getOHLCVData(
     const response = await fetcher<OHLCVResponse>(
       `/onchain/networks/${network}/pools/${poolAddress}/ohlcv/${timeframeMap[timeframe]}`,
       {
-        aggregate: timeframe === "1m" ? "1" : timeframe === "1H" ? "1" : "1",
+        aggregate: "1",
         limit: 100,
+        currency: "usd",
+        token: "base",
+        include_empty_intervals: true,
       },
-      revalidate,
+      0,
     );
 
     console.log("OHLCV DATA:", response);
+    console.log(
+      "OHLCV >>>>>>>>>>>>>>>>>>>>>>>:",
+      response.data?.attributes?.ohlcv_list,
+    );
 
-    return response.data?.attributes?.ohlcv_list ?? [];
+    return response
   } catch (error) {
     console.log(error);
-    return [];
+    return null;
   }
 }

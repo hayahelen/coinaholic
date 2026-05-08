@@ -106,6 +106,7 @@ const CandlestickChart = ({
     if (mode === "live") {
       return mergeCandles(ohlcData, liveOhlcv ?? []);
     }
+
     return normalizeHistorical(ohlcData);
   }, [ohlcData, liveOhlcv, mode]);
 
