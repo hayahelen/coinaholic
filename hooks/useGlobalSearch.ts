@@ -24,23 +24,23 @@ export const useGlobalSearch = () => {
     };
   }, []);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const isMac = navigator.platform.toUpperCase().includes("MAC");
+  // useEffect(() => {
+  //   const handleKeyDown = (e: KeyboardEvent) => {
+  //     const isMac = navigator.platform.toUpperCase().includes("MAC");
 
-      if ((isMac ? e.metaKey : e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        setOpen((prev) => !prev);
-      }
+  //     if ((isMac ? e.metaKey : e.ctrlKey) && e.key.toLowerCase() === "k") {
+  //       e.preventDefault();
+  //       setOpen((prev) => !prev);
+  //     }
 
-      if (e.key === "Escape") {
-        setOpen(false);
-      }
-    };
+  //     if (e.key === "Escape") {
+  //       setOpen(false);
+  //     }
+  //   };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  //   window.addEventListener("keydown", handleKeyDown);
+  //   return () => window.removeEventListener("keydown", handleKeyDown);
+  // }, []);
 
   return { open, setOpen };
 };

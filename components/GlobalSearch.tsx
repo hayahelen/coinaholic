@@ -25,10 +25,8 @@ const GlobalSearch = () => {
 
   // debounce search
   useEffect(() => {
-    if (!query) {
-      setResults([]);
-      return;
-    }
+    if (!query) return;
+    
 
     const timeout = setTimeout(async () => {
       try {
@@ -50,13 +48,21 @@ const GlobalSearch = () => {
   // keyboard nav
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
+      const isMac = navigator.platform.toUpperCase().includes("MAC");
+      if ((isMac ? e.metaKey : e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setOpen((prev) => !prev);
+        return;
+      }
+      if (e.key === "Escape") {
+        setOpen(false);
+        return;
+      }
       if (!open) return;
 
       if (e.key === "ArrowDown") {
         e.preventDefault();
-        setSelectedIndex((prev) =>
-          Math.min(prev + 1, results.length - 1),
-        );
+        setSelectedIndex((prev) => Math.min(prev + 1, results.length - 1));
       }
 
       if (e.key === "ArrowUp") {
@@ -116,9 +122,7 @@ const GlobalSearch = () => {
                 setOpen(false);
               }}
               className={`p-4 cursor-pointer flex items-center gap-3 ${
-                index === selectedIndex
-                  ? "bg-zinc-800"
-                  : "hover:bg-zinc-800/50"
+                index === selectedIndex ? "bg-zinc-800" : "hover:bg-zinc-800/50"
               }`}
             >
               <img src={coin.thumb} alt={coin.name} className="w-6 h-6" />

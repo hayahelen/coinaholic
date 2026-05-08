@@ -67,6 +67,9 @@ const LiveDataWrapper = ({
 
           return unique;
         });
+        if (!append) {
+          setCurrentPage(1);
+        }
       } catch (err) {
         console.error("Failed to fetch trades:", err);
       } finally {
@@ -143,7 +146,7 @@ const LiveDataWrapper = ({
           return [t, o, h, l, c, v] as OHLCVCandle;
         }
 
-        return [t, 1 / o, 1 / h, 1 / l, 1 / c, v] as OHLCVCandle;
+        return [t, 1 / o, 1 / l, 1 / h, 1 / c, v] as OHLCVCandle;
       });
 
       setLiveOhlcv(formatted.sort((a, b) => a[0] - b[0]));

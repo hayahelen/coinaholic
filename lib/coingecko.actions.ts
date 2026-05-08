@@ -162,7 +162,6 @@ export async function getOHLCVData(
   network?: string | null,
   poolAddress?: string | null,
   timeframe: "1m" | "1H" | "1D" = "1m",
-  revalidate = 60,
 ): Promise<OHLCVResponse | null> {
   if (!network || !poolAddress) return null;
 
