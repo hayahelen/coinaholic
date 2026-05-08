@@ -7,8 +7,16 @@ import { getOHLCVData, getTrades } from "@/lib/coingecko.actions";
 import { formatCurrency, timeAgo } from "@/lib/utils";
 import DataTable from "@/components/DataTable";
 import CoinHeader from "./CoinHeader";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
-const REFRESH_INTERVAL = 60000; // 60s safe for demo API
+const REFRESH_INTERVAL = 65000; // 60s safe for demo API
 
 const LiveDataWrapper = ({
   coinId,
@@ -23,6 +31,9 @@ const LiveDataWrapper = ({
   const [liveInterval, setLiveInterval] = useState<"1m" | "1H" | "1D">("1m");
   const [price, setPrice] = useState<ExtendedPriceData | null>(null);
   const [liveOhlcv, setLiveOhlcv] = useState<OHLCVCandle[]>([]);
+  const ITEMS_PER_PAGE = 10;
+
+  const [currentPage, setCurrentPage] = useState(1);
 
   const normalizeTrades = (res: any[]): Trade[] => {
     return res.map((t) => ({
@@ -56,6 +67,9 @@ const LiveDataWrapper = ({
 
           return unique;
         });
+        if (!append) {
+          setCurrentPage(1);
+        }
       } catch (err) {
         console.error("Failed to fetch trades:", err);
       } finally {
@@ -101,26 +115,39 @@ const LiveDataWrapper = ({
     },
   ];
 
-  const handleLoadMore = () => {
-    setVisibleCount((prev) => prev + 10);
-  };
+  // const handleLoadMore = () => {
+  //   setVisibleCount((prev) => prev + 10);
+  // };
 
   const fetchOHLCV = useCallback(async () => {
     if (!network || !poolAddress) return;
 
     try {
       setLoading(true);
+      setLiveOhlcv([]);
 
-      const res = await getOHLCVData(
+      const response = await getOHLCVData(
         coinId,
         network,
         poolAddress,
         liveInterval,
       );
 
-      const formatted = res.map(
-        ([t, o, h, l, c, v]) => [t, o, h, l, c, v] as OHLCVCandle,
-      );
+      if (!response) return;
+
+      const ohlcv = response.data?.attributes?.ohlcv_list ?? [];
+
+      const baseCoinId = response.meta?.base?.coingecko_coin_id;
+      const quoteCoinId = response.meta?.quote?.coingecko_coin_id;
+      const shouldInvert = quoteCoinId === coinId && baseCoinId !== coinId;
+
+      const formatted = ohlcv.map(([t, o, h, l, c, v]) => {
+        if (!shouldInvert) {
+          return [t, o, h, l, c, v] as OHLCVCandle;
+        }
+
+        return [t, 1 / o, 1 / l, 1 / h, 1 / c, v] as OHLCVCandle;
+      });
 
       setLiveOhlcv(formatted.sort((a, b) => a[0] - b[0]));
     } catch (err) {
@@ -129,18 +156,6 @@ const LiveDataWrapper = ({
       setLoading(false);
     }
   }, [coinId, network, poolAddress, liveInterval]);
-
-  useEffect(() => {
-    fetchTrades(false);
-    fetchOHLCV();
-
-    const interval = setInterval(() => {
-      fetchTrades(false);
-      fetchOHLCV();
-    }, REFRESH_INTERVAL);
-
-    return () => clearInterval(interval);
-  }, [fetchTrades, fetchOHLCV]);
 
   const rawLivePrice = liveOhlcv?.length
     ? liveOhlcv[liveOhlcv.length - 1][4]
@@ -152,6 +167,26 @@ const LiveDataWrapper = ({
     rawLivePrice < coin.market_data.current_price.usd * 1.5
       ? rawLivePrice
       : coin.market_data.current_price.usd;
+
+  const totalPages = Math.ceil(trades.length / ITEMS_PER_PAGE);
+
+  const paginatedTrades = trades.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE,
+  );
+
+  useEffect(() => {
+    fetchTrades(false);
+    fetchOHLCV();
+
+    const interval = setInterval(() => {
+      setLiveOhlcv([]);
+      fetchTrades(false);
+      fetchOHLCV();
+    }, REFRESH_INTERVAL);
+
+    return () => clearInterval(interval);
+  }, [fetchTrades, fetchOHLCV]);
 
   return (
     <section id="live-data-wrapper">
@@ -190,14 +225,115 @@ const LiveDataWrapper = ({
 
           <DataTable
             columns={tradeColumns}
-            data={trades.slice(0, visibleCount)}
+            // data={trades.slice(0, visibleCount)}
+            data={paginatedTrades}
             rowKey={(_, index) => index}
             tableClassName="trades-table"
           />
 
-          <button onClick={handleLoadMore} disabled={loading}>
+          {/* <button onClick={handleLoadMore} disabled={loading}>
             {loading ? "Loading..." : "Load More"}
-          </button>
+          </button> */}
+          {totalPages > 1 && (
+            <Pagination className="mt-6">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+
+                      if (currentPage > 1) {
+                        setCurrentPage((prev) => prev - 1);
+                      }
+                    }}
+                    className={
+                      currentPage === 1
+                        ? "pointer-events-none opacity-50"
+                        : "cursor-pointer"
+                    }
+                  />
+                </PaginationItem>
+
+                {(() => {
+                  const pages: (number | string)[] = [];
+
+                  // always show first page
+                  if (currentPage > 2) {
+                    pages.push(1);
+                  }
+
+                  // show leading dots
+                  if (currentPage > 3) {
+                    pages.push("start-ellipsis");
+                  }
+
+                  // show current range (max 3 pages)
+                  const start = Math.max(1, currentPage - 1);
+                  const end = Math.min(totalPages, currentPage + 1);
+
+                  for (let page = start; page <= end; page++) {
+                    pages.push(page);
+                  }
+
+                  // show trailing dots
+                  if (currentPage < totalPages - 2) {
+                    pages.push("end-ellipsis");
+                  }
+
+                  // always show last page
+                  if (currentPage < totalPages - 1) {
+                    pages.push(totalPages);
+                  }
+
+                  return pages.map((item, index) => {
+                    if (typeof item === "string") {
+                      return (
+                        <PaginationItem key={item + index}>
+                          <span className="px-3 py-2 text-muted-foreground">
+                            ...
+                          </span>
+                        </PaginationItem>
+                      );
+                    }
+
+                    return (
+                      <PaginationItem key={item}>
+                        <PaginationLink
+                          href="#"
+                          isActive={currentPage === item}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setCurrentPage(item);
+                          }}
+                        >
+                          {item}
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+                  });
+                })()}
+
+                <PaginationItem>
+                  <PaginationNext
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+
+                      if (currentPage < totalPages) {
+                        setCurrentPage((prev) => prev + 1);
+                      }
+                    }}
+                    className={
+                      currentPage === totalPages
+                        ? "pointer-events-none opacity-50"
+                        : "cursor-pointer"
+                    }
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
         </div>
       )}
     </section>

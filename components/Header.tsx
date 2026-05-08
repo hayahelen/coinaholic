@@ -4,9 +4,11 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
+import { useGlobalSearch } from "@/hooks/useGlobalSearch";
 
 const Header = () => {
   const pathName = usePathname();
+   const { setOpen } = useGlobalSearch();
   return (
     <header>
       <div className="main-container inner">
@@ -28,7 +30,12 @@ const Header = () => {
           >
             Home
           </Link>
-          <p>Search Modal</p>
+           <button
+            onClick={() => setOpen(true)}
+            className="nav-link cursor-pointer"
+          >
+            Search Modal
+          </button>
           <Link
             href="/coins"
             className={cn("nav-link", {
